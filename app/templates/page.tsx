@@ -1,9 +1,9 @@
 'use client';
-
+import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FiSearch, FiFilter, FiX, FiArrowRight } from 'react-icons/fi';
+import { FiSearch,FiPlus, FiFilter, FiX, FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
@@ -21,6 +21,10 @@ type Template = {
 };
 
 export default function Templates() {
+
+  const { data: session } = useSession();
+  console.log("session",session);
+  const isAdmin = session?.user?.role === 'admin';
   const searchParams = useSearchParams();
   const promptParam = searchParams.get('prompt');
   
@@ -215,6 +219,15 @@ export default function Templates() {
               >
                 <FiFilter className="mr-2" /> Filters
               </button>
+
+              {isAdmin && (
+              <Link
+                href="/templates/add" // Replace with your desired route
+                className="btn-secondary flex items-center justify-center"
+              >
+                <FiPlus className="mr-2" /> Add Template
+              </Link>
+            )}
             </form>
             
             {showFilters && (

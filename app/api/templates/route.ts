@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Template from '@/models/Template';
 
+// GET method for fetching templates
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -34,6 +35,31 @@ export async function GET(request: Request) {
     console.error('Error fetching templates:', error);
     return NextResponse.json(
       { message: 'Failed to fetch templates' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST method for adding a new template
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    await connectDB();
+
+    // Create a new template
+    const newTemplate = await Template.create(body);
+
+    return NextResponse.json(
+      { 
+        message: 'Template added successfully', 
+        template: newTemplate, // Include the full template object with _id
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error adding template:', error);
+    return NextResponse.json(
+      { message: 'Failed to add template' },
       { status: 500 }
     );
   }

@@ -23,20 +23,33 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError('');
-    
+  
     try {
       const result = await signIn('credentials', {
         redirect: false,
         email: data.email,
         password: data.password,
       });
-      
+  
       if (result?.error) {
         setError(result.error);
         toast.error(result.error);
       } else {
         toast.success('Logged in successfully!');
-        router.push('/dashboard');
+  
+        // Fetch the user's role from the session
+        const session = await fetch('/api/auth/session');
+        const userData = await session.json();
+  
+        // Redirect based on role
+        if (userData.user.role === 'admin') {
+          router.push('/dashboard');
+        } else if (userData.user.role === 'client') {
+          router.push('/dashboard');
+        } else {
+          router.push('/dashboard'); // Fallback for other roles
+        }
+  
         router.refresh();
       }
     } catch (error) {

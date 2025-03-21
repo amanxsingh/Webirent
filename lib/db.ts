@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://saurabh:EvKJuuNxtsxWGxd0@cluster0.e8d2pel.mongodb.net/webirent';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Aryan:Aryan123@cluster0.oen15.mongodb.net/webirent';
 
 let cached = global.mongoose;
 

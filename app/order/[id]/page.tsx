@@ -34,80 +34,34 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
   
   useEffect(() => {
-    // Check if user is authenticated
-    if (status === 'unauthenticated') {
-      toast.error('Please log in to place an order');
-      router.push(`/login?redirect=/order/${params.id}`);
-      return;
-    }
-    
-    // In a real app, we would fetch the template from the API
-    // For now, we'll use sample data
-    setIsLoading(true);
-    
-    // Sample template data
-    const sampleTemplates = [
-      {
-        _id: '1',
-        name: 'Modern E-commerce',
-        description: 'A sleek, modern e-commerce template with product galleries, cart, and checkout.',
-        category: 'E-commerce',
-        imageUrl: 'https://images.unsplash.com/photo-1557821552-17105176677c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2089&q=80',
-        price: 99,
-      },
-      {
-        _id: '2',
-        name: 'Creative Portfolio',
-        description: 'Showcase your work with this elegant portfolio template designed for creatives.',
-        category: 'Portfolio',
-        imageUrl: 'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80',
-        price: 79,
-      },
-      {
-        _id: '3',
-        name: 'Corporate Business',
-        description: 'Professional business template for companies looking to establish a strong online presence.',
-        category: 'Business',
-        imageUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-        price: 129,
-      },
-      {
-        _id: '4',
-        name: 'Minimalist Blog',
-        description: 'Clean and minimalist blog template focused on content readability.',
-        category: 'Blog',
-        imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-        price: 69,
-      },
-      {
-        _id: '5',
-        name: 'Product Launch',
-        description: 'High-converting landing page template designed for product launches and promotions.',
-        category: 'Landing Page',
-        imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2015&q=80',
-        price: 89,
-      },
-      {
-        _id: '6',
-        name: 'Restaurant & Cafe',
-        description: 'Elegant template for restaurants and cafes with menu display and reservation system.',
-        category: 'Business',
-        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-        price: 109,
-      },
-    ];
-    
-    // Find the template with the matching ID
-    const foundTemplate = sampleTemplates.find(t => t._id === params.id);
-    
-    if (foundTemplate) {
-      setTemplate(foundTemplate);
-    } else {
-      toast.error('Template not found');
-      router.push('/templates');
-    }
-    
-    setIsLoading(false);
+    const fetchTemplate = async () => {
+      if (status === 'unauthenticated') {
+        toast.error('Please log in to place an order');
+        router.push(`/login?redirect=/order/${params.id}`);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/templates/${params.id}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setTemplate(data.template);
+        } else {
+          toast.error(data.message || 'Failed to fetch template');
+          router.push('/templates');
+        }
+      } catch (error) {
+        console.error('Error fetching template:', error);
+        toast.error('An error occurred while fetching the template');
+        router.push('/templates');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTemplate();
   }, [params.id, router, status]);
   
   const onSubmit = async (data: FormData) => {
@@ -116,16 +70,11 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
     setIsSubmitting(true);
     
     try {
-      // In a real app, we would send this to the API
-      // For now, we'll simulate a successful order
-      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Generate a random order number
       const orderNumber = `WR-${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
-      // Store order details in localStorage for the confirmation page
       localStorage.setItem('orderDetails', JSON.stringify({
         orderNumber,
         template: {
@@ -167,7 +116,7 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen pt-20 pb-16">
       <div className="container mx-auto px-4">

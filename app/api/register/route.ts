@@ -4,12 +4,20 @@ import User from '@/models/User';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, role } = await request.json();
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !role) {
       return NextResponse.json(
         { message: 'Please provide all required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate role
+    if (!['admin', 'client'].includes(role)) {
+      return NextResponse.json(
+        { message: 'Invalid role specified' },
         { status: 400 }
       );
     }
@@ -30,6 +38,7 @@ export async function POST(request: Request) {
       name,
       email,
       password,
+      role, // Add role to the user
     });
 
     // Return success without password
@@ -40,6 +49,7 @@ export async function POST(request: Request) {
           id: user._id,
           name: user.name,
           email: user.email,
+          role: user.role,
         },
       },
       { status: 201 }

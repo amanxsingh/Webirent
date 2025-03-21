@@ -1,5 +1,4 @@
 'use client';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +12,7 @@ type FormData = {
   email: string;
   password: string;
   confirmPassword: string;
+  role: 'admin' | 'client'; // Add role field
 };
 
 export default function Register() {
@@ -37,6 +37,7 @@ export default function Register() {
           name: data.name,
           email: data.email,
           password: data.password,
+          role: data.role, // Include role in the request
         }),
       });
       
@@ -187,6 +188,23 @@ export default function Register() {
               </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-1">
+                Role
+              </label>
+              <select
+                id="role"
+                {...register('role', { required: 'Role is required' })}
+                className="input-field"
+              >
+                <option value="client">Client</option>
+                <option value="admin">Admin</option>
+              </select>
+              {errors.role && (
+                <p className="mt-1 text-sm text-red-400">{errors.role.message}</p>
               )}
             </div>
           </div>
