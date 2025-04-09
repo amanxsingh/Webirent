@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FiCheckCircle, FiArrowRight, FiDownload, FiMail } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import html2pdf from 'html2pdf.js';
 
 type OrderDetails = {
   orderNumber: string;
@@ -41,8 +40,10 @@ export default function OrderConfirmation() {
     }
   }, [router]);
 
-  const handleDownloadReceipt = () => {
+  const handleDownloadReceipt = async () => {
     if (!receiptRef.current || !orderDetails) return;
+
+    const html2pdf = (await import('html2pdf.js')).default;
 
     const opt = {
       margin: 10,
