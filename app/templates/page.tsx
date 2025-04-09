@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { FiSearch, FiPlus, FiFilter, FiX, FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 type Template = {
   _id: string;
@@ -24,7 +25,7 @@ export default function Templates() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
   const searchParams = useSearchParams();
-  const promptParam = searchParams.get('prompt');
+  const promptParam = searchParams ? searchParams.get('prompt') : null;
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
@@ -219,10 +220,12 @@ export default function Templates() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
                   <div className="relative h-48 overflow-hidden">
-                    <img
+                    <Image
                       src={template.imageUrl}
                       alt={template.name}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      width={300}
+                      height={200}
+                      className="w-full h-full object-cover"
                     />
                     {template.isPopular && (
                       <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded">

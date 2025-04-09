@@ -60,7 +60,7 @@ export default function OrderConfirmation() {
       .set(opt)
       .from(receiptRef.current)
       .save()
-      .catch(err => console.error('Failed to generate PDF:', err));
+      .catch((err: unknown) => console.error('Failed to generate PDF:', err));
   };
   
   if (!orderDetails) {

@@ -3,8 +3,23 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
+import { Session } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
+import { SessionStrategy } from 'next-auth';
 
-const authOptions = {
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      role: string;
+      email: string;
+      name: string; // Added the missing 'name' property
+    };
+    accessToken: JWT;
+  }
+}
+
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -41,11 +56,11 @@ const authOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as SessionStrategy,
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user?: any }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -53,12 +68,13 @@ const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.email = token.email;
-        session.accessToken = token; // Add this line
+        session.user = session.user || { name: null, email: null, image: null };
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.email = token.email || '';
+        session.accessToken = token;
       }
       return session;
     },

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiArrowRight } from 'react-icons/fi';
+import Image from 'next/image';
 
 export default function About() {
   const teamMembers = [
@@ -209,9 +210,11 @@ export default function About() {
                 variants={itemVariants}
               >
                 <div className="h-64 overflow-hidden">
-                  <img 
-                    src={member.image} 
-                    alt={member.name} 
+                  <Image
+                    src={member.image}
+                    alt={member.name}
+                    width={200}
+                    height={200}
                     className="w-full h-full object-cover"
                   />
                 </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiChevronLeft, FiChevronRight, FiStar } from 'react-icons/fi';
+import Image from 'next/image';
 
 const testimonials = [
   {
@@ -77,9 +78,11 @@ const Testimonials = () => {
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-1/3 flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full overflow-hidden mb-4">
-                  <img 
+                  <Image 
                     src={testimonials[currentIndex].image} 
                     alt={testimonials[currentIndex].name} 
+                    width={96} 
+                    height={96} 
                     className="w-full h-full object-cover"
                   />
                 </div>

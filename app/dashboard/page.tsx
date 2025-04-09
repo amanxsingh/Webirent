@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { FiPlus, FiShoppingBag, FiUser, FiSettings, FiExternalLink } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 type Order = {
   _id: string;
@@ -176,9 +177,11 @@ export default function Dashboard() {
                         <td className="py-4 px-4">
                           <div className="flex items-center">
                             <div className="w-10 h-10 rounded overflow-hidden mr-3">
-                              <img
+                              <Image
                                 src={order.template.imageUrl}
                                 alt={order.template.name}
+                                width={40}
+                                height={40}
                                 className="w-full h-full object-cover"
                               />
                             </div>
