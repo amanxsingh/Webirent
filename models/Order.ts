@@ -1,10 +1,32 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const OrderSchema = new mongoose.Schema(
+export interface IOrder extends Document {
+  orderNumber: string;
+  user: mongoose.Types.ObjectId;
+  userEmail: string;
+  template: mongoose.Types.ObjectId;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  totalPrice: number;
+  customerDetails: {
+    businessName: string;
+    contactEmail: string;
+    contactPhone: string;
+    requirements: string;
+  };
+  paymentId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const OrderSchema: Schema = new Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+      required: true,
+    },
+    userEmail: {
+      type: String,
       required: true,
     },
     template: {
@@ -16,6 +38,10 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'processing', 'completed', 'cancelled'],
       default: 'pending',
+    },
+    totalPrice: {
+      type: Number,
+      required: true,
     },
     customerDetails: {
       businessName: {
@@ -34,10 +60,6 @@ const OrderSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
     },
     paymentId: {
       type: String,
@@ -64,4 +86,4 @@ OrderSchema.pre('save', async function (next) {
   next();
 });
 
-export default mongoose.models.Order || mongoose.model('Order', OrderSchema);
+export default mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);

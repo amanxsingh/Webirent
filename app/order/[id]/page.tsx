@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { FiArrowLeft, FiCheck, FiCreditCard } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import Script from 'next/script';
 
 type Template = {
   _id: string;
@@ -30,6 +31,7 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
   
@@ -64,33 +66,162 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
     fetchTemplate();
   }, [params.id, router, status]);
   
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        setRazorpayLoaded(true);
+        resolve(true);
+      };
+      script.onerror = () => {
+        console.error('Razorpay SDK failed to load');
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  };
+
+  const initializeRazorpay = async () => {
+    if (typeof window !== 'undefined' && !window.Razorpay) {
+      return await loadRazorpay();
+    }
+    return true;
+  };
+
   const onSubmit = async (data: FormData) => {
     if (!session || !template) return;
     
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const orderNumber = `WR-${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-      
-      localStorage.setItem('orderDetails', JSON.stringify({
-        orderNumber,
-        template: {
-          id: template._id,
-          name: template.name,
-          price: template.price,
+      // 1. First load Razorpay if needed
+      const razorpayInitialized = await initializeRazorpay();
+      if (!razorpayInitialized) {
+        throw new Error('Failed to load payment processor');
+      }
+
+      // 2. Create Razorpay order
+      const response = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.accessToken}` // Add authorization
         },
-        customerDetails: data,
-        date: new Date().toISOString(),
-      }));
+        body: JSON.stringify({
+          amount: template.price * 100,
+          currency: 'INR',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment order');
+      }
+
+      const orderData = await response.json();
+
+      // 3. Initialize Razorpay payment
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Webirent",
+        description: `Payment for ${template.name}`,
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          // On successful payment
+          const orderNumber = `WR-${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+          
+          try {
+            // Save to MongoDB
+            const orderResponse = await fetch('/api/orders', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${session.accessToken}`
+              },
+              body: JSON.stringify({
+                templateId: template._id,
+                customerDetails: {
+                  businessName: data.businessName,
+                  contactEmail: data.contactEmail,
+                  contactPhone: data.contactPhone,
+                  requirements: data.requirements
+                },
+                paymentId: response.razorpay_payment_id
+              }),
+            });
+        
+            if (!orderResponse.ok) {
+              throw new Error('Failed to save order to database');
+            }
+        
+            const orderData = await orderResponse.json();
+        
+            // Save to localStorage for confirmation page
+            localStorage.setItem('orderDetails', JSON.stringify({
+              orderNumber: orderData.order.orderNumber,
+              template: {
+                id: template._id,
+                name: template.name,
+                price: template.price,
+              },
+              customerDetails: data,
+              date: new Date().toISOString(),
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id,
+              signature: response.razorpay_signature,
+            }));
+        
+            // Send emails
+            try {
+              await fetch('/api/send-emails', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderNumber: orderData.order.orderNumber,
+                  businessName: data.businessName,
+                  customerEmail: data.contactEmail,
+                  customerName: session.user?.name || data.businessName,
+                  templateName: template.name,
+                  amount: template.price,
+                  requirements: data.requirements
+                }),
+              });
+            } catch (emailError) {
+              console.error('Email sending error:', emailError);
+            }
+        
+            toast.success('Payment successful! Order placed.');
+            router.push('/order/confirmation');
+          } catch (error) {
+            console.error('Order processing error:', error);
+            toast.error('Order completed but failed to save details. Please contact support.');
+            router.push('/order/confirmation');
+          }
+        },
+        prefill: {
+          name: session.user?.name || '',
+          email: session.user?.email || '',
+          contact: data.contactPhone,
+        },
+        theme: {
+          color: '#6366f1',
+        },
+      };
+
+      const rzp1 = new window.Razorpay(options);
+      rzp1.open();
       
-      toast.success('Order placed successfully!');
-      router.push('/order/confirmation');
+      rzp1.on('payment.failed', function (response: any) {
+        toast.error(`Payment failed: ${response.error.description}`);
+      });
+      
     } catch (error) {
-      console.error('Error placing order:', error);
-      toast.error('Failed to place order. Please try again.');
+      console.error('Error processing payment:', error);
+      toast.error('Failed to process payment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -245,7 +376,7 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
                 <div className="border-t border-gray-700 my-4 pt-4">
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-300">Template Price</span>
-                    <span>${template.price.toFixed(2)}</span>
+                    <span>₹{template.price.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-300">Customization</span>
@@ -260,7 +391,7 @@ export default function OrderTemplate({ params }: { params: { id: string } }) {
                 <div className="border-t border-gray-700 my-4 pt-4">
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${template.price.toFixed(2)}</span>
+                    <span>₹{template.price.toFixed(2)}</span>
                   </div>
                 </div>
                 

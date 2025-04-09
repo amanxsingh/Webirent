@@ -40,6 +40,8 @@ export async function GET(request: Request) {
   }
 }
 
+
+
 // POST method for adding a new template
 export async function POST(request: Request) {
   try {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiCheck, FiPlus } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
 export default function AddTemplate() {
@@ -11,7 +11,7 @@ export default function AddTemplate() {
 
   const [formData, setFormData] = useState({
     name: '',
-    description: '', // Added description field
+    description: '',
     category: '',
     tags: '',
     imageUrl: '',
@@ -21,10 +21,27 @@ export default function AddTemplate() {
     isPopular: false,
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    if (type === 'checkbox') {
+      const isChecked = (e.target as HTMLInputElement).checked;
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: isChecked,
+      }));
+    } else {
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-  
+
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
@@ -37,11 +54,11 @@ export default function AddTemplate() {
           features: formData.features.split(',').map((feature) => feature.trim()),
         }),
       });
-  
+
       if (response.ok) {
-        const { template } = await response.json(); // Get the created template from the response
+        const { template } = await response.json();
         toast.success('Template added successfully!');
-        router.push(`/templates/${template._id}`); // Navigate to the template details page
+        router.push(`/templates/${template._id}`);
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || 'Failed to add template');

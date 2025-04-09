@@ -27,64 +27,34 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check if user is authenticated
-    if (status === 'unauthenticated') {
-      toast.error('Please log in to access the dashboard');
-      router.push('/login?redirect=/dashboard');
-      return;
-    }
-    
-    // In a real app, we would fetch orders from the API
-    // For now, we'll use sample data
     const fetchOrders = async () => {
-      setIsLoading(true);
-      
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Sample order data
-        const sampleOrders: Order[] = [
-          {
-            _id: '1',
-            orderNumber: 'WR-230901-1234',
-            template: {
-              _id: '1',
-              name: 'Modern E-commerce',
-              imageUrl: 'https://images.unsplash.com/photo-1557821552-17105176677c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2089&q=80',
-            },
-            status: 'completed',
-            totalPrice: 99,
-            createdAt: '2023-09-01T10:30:00Z',
-          },
-          {
-            _id: '2',
-            orderNumber: 'WR-230915-5678',
-            template: {
-              _id: '3',
-              name: 'Corporate Business',
-              imageUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-            },
-            status: 'processing',
-            totalPrice: 129,
-            createdAt: '2023-09-15T14:45:00Z',
-          },
-        ];
-        
-        setOrders(sampleOrders);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        toast.error('Failed to fetch orders');
-      } finally {
-        setIsLoading(false);
+      if (status === 'unauthenticated') {
+        toast.error('Please log in to access the dashboard');
+        router.push('/login?redirect=/dashboard');
+        return;
+      }
+
+      if (status === 'authenticated') {
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/orders');
+          if (!response.ok) {
+            throw new Error('Failed to fetch orders');
+          }
+          const data = await response.json();
+          setOrders(data.orders);
+        } catch (error) {
+          console.error('Error fetching orders:', error);
+          toast.error('Failed to fetch orders');
+        } finally {
+          setIsLoading(false);
+        }
       }
     };
-    
-    if (status === 'authenticated') {
-      fetchOrders();
-    }
+
+    fetchOrders();
   }, [router, status]);
-  
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen pt-20 pb-16 flex justify-center items-center">
@@ -92,11 +62,11 @@ export default function Dashboard() {
       </div>
     );
   }
-  
+
   if (!session) {
-    return null; // This should not happen as we redirect in useEffect
+    return null;
   }
-  
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -104,7 +74,7 @@ export default function Dashboard() {
       day: 'numeric',
     });
   };
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
